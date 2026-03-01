@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/lib/auth/auth-context';
 import { supabase } from '@/lib/supabase/client';
 import { guestStorage } from '@/lib/storage/guest-storage';
@@ -10,12 +10,13 @@ export function useHabits() {
   const { user, isGuest } = useAuth();
   const [habits, setHabits] = useState<(Habit | GuestHabit)[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     loadHabits();
-  }, [user, isGuest]);
+  }, [user, isGuest, refreshTrigger]);
 
-  const loadHabits = async () => {
+  const loadHabits = useCallback(async () => {
     setLoading(true);
     try {
       if (isGuest) {
@@ -35,7 +36,7 @@ export function useHabits() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isGuest]);
 
   const createHabit = async (name: string, type: HabitType) => {
     if (isGuest) {
@@ -79,11 +80,15 @@ export function useHabits() {
     }
   };
 
+  const refreshHabits = useCallback(() => {
+    setRefreshTrigger(prev => prev + 1);
+  }, []);
+
   return {
     habits,
     loading,
     createHabit,
     deleteHabit,
-    refreshHabits: loadHabits,
+    refreshHabits,
   };
 }
